@@ -1,0 +1,67 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "conversation_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "web",
+        "whatsapp",
+        "sms",
+        "email"
+      ]
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ]
+    },
+    "sender": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "manager",
+        "contact"
+      ]
+    },
+    "text": {
+      "type": "string"
+    },
+    "delivery_status": {
+      "type": "string",
+      "enum": [
+        "delivered_in_app",
+        "demo_only",
+        "not_sent"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "org_id",
+    "conversation_id",
+    "text"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

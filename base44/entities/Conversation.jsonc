@@ -1,0 +1,48 @@
+{
+  "name": "Conversation",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "web",
+        "whatsapp",
+        "sms",
+        "email"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "participant": {
+      "type": "string"
+    },
+    "last_message": {
+      "type": "string"
+    },
+    "last_message_at": {
+      "type": "string"
+    },
+    "is_demo": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "org_id",
+    "channel"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

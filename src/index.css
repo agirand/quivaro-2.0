@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97.5%;
+    --foreground: 219 55% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 219 55% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 219 55% 13%;
+    --primary: 219 55% 15%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 25% 95%;
+    --secondary-foreground: 219 55% 15%;
+    --muted: 210 25% 95%;
+    --muted-foreground: 218 14% 46%;
+    --accent: 174 50% 94%;
+    --accent-foreground: 176 70% 24%;
+    --destructive: 0 72% 52%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 216 20% 90%;
+    --input: 216 20% 88%;
+    --ring: 176 60% 35%;
+    --chart-1: 176 60% 38%;
+    --chart-2: 204 80% 48%;
+    --chart-3: 219 55% 20%;
+    --chart-4: 43 74% 60%;
+    --chart-5: 0 70% 60%;
+    --radius: 0.75rem;
+    --font-heading: 'Fraunces', Georgia, serif;
+    --font-body: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground font-body antialiased; }
+  h1, h2, h3 { @apply font-heading; }
+}
+
+.chip { @apply inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full transition; }
+.card-soft { @apply bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,30,60,0.04),0_8px_24px_-12px_rgba(15,30,60,0.08)]; }

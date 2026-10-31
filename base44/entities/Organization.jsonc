@@ -1,0 +1,122 @@
+{
+  "name": "Organization",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "industry": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "employee_count": {
+      "type": "string"
+    },
+    "customer_segments": {
+      "type": "string"
+    },
+    "time_drains": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "communication_tools": {
+      "type": "string"
+    },
+    "software": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "public_phone": {
+      "type": "string"
+    },
+    "public_email": {
+      "type": "string"
+    },
+    "profile_source_url": {
+      "type": "string"
+    },
+    "profile_retrieved_at": {
+      "type": "string"
+    },
+    "profile_verification": {
+      "type": "string",
+      "enum": [
+        "none",
+        "public_unconfirmed",
+        "match_confirmed"
+      ],
+      "default": "none"
+    },
+    "ownership_status": {
+      "type": "string",
+      "enum": [
+        "unverified",
+        "verified"
+      ],
+      "default": "unverified"
+    },
+    "discovery_stage": {
+      "type": "string",
+      "enum": [
+        "intro",
+        "awaiting_match",
+        "services_confirm",
+        "learning"
+      ],
+      "default": "intro"
+    },
+    "match_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "onboarding_stage": {
+      "type": "string",
+      "enum": [
+        "intro",
+        "learning",
+        "established"
+      ],
+      "default": "intro"
+    },
+    "profile_facts": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Per-field provenance: {value, status: confirmed|discovered, source, source_url, excerpt, discovered_at, updated_at, history[]}. Missing = unknown."
+    },
+    "rejected_services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Services the owner removed; rescans never re-add them."
+    },
+    "crawl_report": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

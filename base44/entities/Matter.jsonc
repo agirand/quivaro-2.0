@@ -1,0 +1,93 @@
+{
+  "name": "Matter",
+  "type": "object",
+  "properties": {
+    "client_code": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "accounting",
+        "tax",
+        "registration",
+        "licensing",
+        "bookkeeping",
+        "compliance"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "waiting_client",
+        "review",
+        "completed"
+      ]
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "progress": {
+      "type": "number"
+    },
+    "agent": {
+      "type": "string"
+    },
+    "staff": {
+      "type": "string"
+    },
+    "compliance": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

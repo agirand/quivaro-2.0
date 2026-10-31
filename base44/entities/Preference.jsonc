@@ -1,0 +1,53 @@
+{
+  "name": "Preference",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "source_ref": {
+      "type": "string"
+    },
+    "source_excerpt": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "verification": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "ai_extracted"
+      ],
+      "default": "ai_extracted"
+    }
+  },
+  "required": [
+    "org_id",
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

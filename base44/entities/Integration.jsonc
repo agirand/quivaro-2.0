@@ -1,0 +1,50 @@
+{
+  "name": "Integration",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "disconnected",
+        "connecting",
+        "connected",
+        "error"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "demo",
+        "live"
+      ],
+      "default": "demo"
+    },
+    "last_sync": {
+      "type": "string"
+    },
+    "error_message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "org_id",
+    "provider"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

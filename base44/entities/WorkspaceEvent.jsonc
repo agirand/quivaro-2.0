@@ -1,0 +1,48 @@
+{
+  "name": "WorkspaceEvent",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "created",
+        "updated",
+        "queued",
+        "confirmed",
+        "rejected",
+        "connected",
+        "profile"
+      ]
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "record_name": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "org_id",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

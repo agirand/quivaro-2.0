@@ -1,0 +1,54 @@
+{
+  "name": "AgentAction",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "agent": {
+      "type": "string",
+      "enum": [
+        "Manager",
+        "Sales",
+        "Operations",
+        "Finance",
+        "Administration"
+      ]
+    },
+    "action": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "logged",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "not_available"
+      ]
+    },
+    "source": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "org_id",
+    "agent",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

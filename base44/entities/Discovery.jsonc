@@ -1,0 +1,71 @@
+{
+  "name": "Discovery",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "employee",
+        "customer",
+        "offering",
+        "project",
+        "task",
+        "preference",
+        "profile"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "fields": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "reason": {
+      "type": "string"
+    },
+    "possible_match": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "source": {
+      "type": "string"
+    },
+    "source_ref": {
+      "type": "string"
+    },
+    "source_excerpt": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "org_id",
+    "entity_type",
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
