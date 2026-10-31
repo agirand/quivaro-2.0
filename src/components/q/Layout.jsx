@@ -7,7 +7,7 @@ import { resetDemo, syncInvoiceStatuses } from '@/lib/seed';
 import ResetButton from './ResetButton';
 
 const NAV = [
-  ['/', 'Business Pulse', Activity], ['/tour', 'Demo Tour', PlayCircle], ['/maya', 'Ask Maya', Sparkles], ['/team', 'AI Team', Users],
+  ['/pulse', 'Business Pulse', Activity], ['/tour', 'Demo Tour', PlayCircle], ['/maya', 'Ask Maya', Sparkles], ['/team', 'AI Team', Users],
   ['/workboard', 'Workboard', LayoutGrid], ['/decisions', 'Decision Center', Gavel], ['/clients', 'Clients', Building2],
   ['/w', 'My Workspace', Wand2],
 ];

@@ -32,6 +32,11 @@ import WAgents from '@/pages/w/WAgents';
 import WIntegrations from '@/pages/w/WIntegrations';
 import WReview from '@/pages/w/WReview';
 import WSettings from '@/pages/w/WSettings';
+import WWorkCenter from '@/pages/w/WWorkCenter';
+import WWorkOrder from '@/pages/w/WWorkOrder';
+import WDeliverables from '@/pages/w/WDeliverables';
+import WCatalog from '@/pages/w/WCatalog';
+import WPlans from '@/pages/w/WPlans';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -60,8 +65,9 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route path="/" element={<Navigate to="/w" replace />} />
         <Route element={<Layout />}>
-          <Route path="/" element={<Pulse />} />
+          <Route path="/pulse" element={<Pulse />} />
           <Route path="/tour" element={<DemoTour />} />
           <Route path="/maya" element={<AskMaya />} />
           <Route path="/team" element={<AITeam />} />
@@ -71,7 +77,12 @@ const AuthenticatedApp = () => {
           <Route path="/clients/:code" element={<ClientDetail />} />
         </Route>
         <Route path="/w" element={<WorkspaceLayout />}>
-          <Route index element={<WOverview />} />
+          <Route index element={<WWorkCenter />} />
+          <Route path="overview" element={<WOverview />} />
+          <Route path="work/:id" element={<WWorkOrder />} />
+          <Route path="deliverables" element={<WDeliverables />} />
+          <Route path="catalog" element={<WCatalog />} />
+          <Route path="plans" element={<WPlans />} />
           <Route path="conversations" element={<WConversations />} />
           <Route path="clients" element={<WClients />} />
           <Route path="team" element={<WTeam />} />

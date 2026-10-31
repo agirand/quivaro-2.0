@@ -1,7 +1,8 @@
-import { LayoutDashboard, MessagesSquare, Building2, Users, ListChecks, Settings2, Bot, Plug, Settings, Inbox } from 'lucide-react';
+import { LayoutDashboard, MessagesSquare, Building2, Users, ListChecks, Settings2, Bot, Plug, Settings, Inbox, Briefcase, FileCheck2, LayoutGrid, CreditCard } from 'lucide-react';
 
 export const WS_NAV = [
-  ['/w', 'Overview', LayoutDashboard], ['/w/conversations', 'Conversations', MessagesSquare], ['/w/clients', 'Clients', Building2],
+  ['/w', 'Work Center', Briefcase], ['/w/deliverables', 'Deliverables', FileCheck2], ['/w/catalog', 'Work catalog', LayoutGrid], ['/w/review', 'Approvals', Inbox],
+  ['/w/overview', 'AI Manager', LayoutDashboard], ['/w/conversations', 'Conversations', MessagesSquare], ['/w/clients', 'Clients', Building2],
   ['/w/team', 'Team', Users], ['/w/tasks', 'Tasks', ListChecks], ['/w/operations', 'Operations', Settings2],
-  ['/w/agents', 'Agents', Bot], ['/w/integrations', 'Integrations', Plug], ['/w/review', 'Review queue', Inbox], ['/w/settings', 'Settings', Settings],
+  ['/w/agents', 'Workforce', Bot], ['/w/integrations', 'Integrations', Plug], ['/w/plans', 'Plan & usage', CreditCard], ['/w/settings', 'Settings', Settings],
 ];

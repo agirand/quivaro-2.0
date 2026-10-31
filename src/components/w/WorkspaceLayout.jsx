@@ -27,7 +27,7 @@ export default function WorkspaceLayout() {
             </NavLink>
           ))}
         </nav>
-        <Link to="/" className="hidden lg:flex mt-auto items-center gap-2 text-xs text-slate-500 hover:text-slate-900 px-1"><ArrowLeft className="w-3.5 h-3.5" />Founder demo (Delaware Valley)</Link>
+        <Link to="/pulse" className="hidden lg:flex mt-auto items-center gap-2 text-xs text-slate-500 hover:text-slate-900 px-1"><ArrowLeft className="w-3.5 h-3.5" />Founder demo (Delaware Valley)</Link>
       </aside>
       <main className="flex-1 lg:ml-64 px-4 md:px-10 py-6 md:py-10 max-w-[1400px] w-full">
         {org ? <Outlet context={{ org }} /> : <div className="flex flex-col items-center py-40 text-slate-500 gap-3"><Loader2 className="w-6 h-6 animate-spin text-teal-600" />Preparing your workspace…</div>}
