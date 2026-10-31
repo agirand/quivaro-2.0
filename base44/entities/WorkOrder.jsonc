@@ -1,0 +1,143 @@
+{
+  "name": "WorkOrder",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "request": {
+      "type": "string"
+    },
+    "template_key": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scoped",
+        "executing",
+        "needs_input",
+        "awaiting_approval",
+        "blocked",
+        "quality_review",
+        "delivered",
+        "accepted",
+        "revision_requested",
+        "cancelled",
+        "closed"
+      ],
+      "default": "scoped"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "exclusions": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provided_info": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "due_date": {
+      "type": "string"
+    },
+    "progress": {
+      "type": "number",
+      "default": 0
+    },
+    "needs_from_customer": {
+      "type": "string"
+    },
+    "price_mode": {
+      "type": "string",
+      "enum": [
+        "included",
+        "package"
+      ],
+      "default": "included"
+    },
+    "package_price": {
+      "type": "number"
+    },
+    "est_cost": {
+      "type": "number"
+    },
+    "actual_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "review_minutes": {
+      "type": "number",
+      "default": 0
+    },
+    "rework_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "hours_saved": {
+      "type": "number"
+    },
+    "bonus_amount": {
+      "type": "number"
+    },
+    "bonus_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "declined",
+        "pledged"
+      ],
+      "default": "none"
+    },
+    "is_demo": {
+      "type": "boolean"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "org_id",
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

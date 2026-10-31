@@ -105,6 +105,15 @@
     "crawl_report": {
       "type": "object",
       "additionalProperties": true
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "growth",
+        "scale"
+      ],
+      "default": "starter"
     }
   },
   "required": [],
