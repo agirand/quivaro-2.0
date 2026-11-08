@@ -30,6 +30,7 @@ export const HOURLY_VALUE = 45; // illustrative value of an owner/staff hour
 
 const step = (title, agent, tool, needs_approval = false) => ({ title, agent, tool, needs_approval });
 export const DEFAULT_TEMPLATES = [
+  { key: 'lead_to_proposal', name: 'Lead to proposal', category: 'Sales Operations', description: 'Qualify a lead, review a proposal and approve a communication for delivery by your team.', inputs: ['Lead details and ideal client criteria', 'Approved scope, pricing, currency and timing', 'Recipient, channel and permission to contact'], steps: [step('Qualify lead with evidence and owner review', 'Sales', 'ai', true), step('Draft proposal for owner review', 'Sales', 'ai', true), step('Prepare proposal communication for approved manual delivery', 'Administration', 'google_workspace', true)], deliverables: ['Evidence-based qualification', 'Reviewed proposal', 'Approved communication and manual delivery record'], acceptance_criteria: ['Qualification reviewed by owner', 'Proposal terms reviewed by owner', 'Communication approved and manual delivery recorded'], price_mode: 'included', hours_saved: 3 },
   { key: 'client_onboarding', name: 'New client onboarding', category: 'Client Operations', description: 'Open the client file, prepare the engagement checklist, request documents and deliver an organized file for review.', inputs: ['Client names and contacts', 'Service each client signed up for'], steps: [step('Build onboarding checklist per client', 'Operations', 'workspace'), step('Draft welcome and document request emails', 'Sales', 'ai', true), step('Send requests to clients', 'Administration', 'google_workspace', true), step('Track received and missing documents', 'Administration', 'workspace'), step('Prepare client files for professional review', 'Operations', 'ai')], deliverables: ['Onboarding checklist', 'Document status report', 'Review-ready client files'], acceptance_criteria: ['Every client has a checklist', 'Every missing document is listed per client', 'Files are summarized for professional review'], price_mode: 'package', package_price: 40, hours_saved: 6 },
   { key: 'document_collection', name: 'Missing document collection', category: 'Client Operations', description: 'Find what is missing, request it politely in English or Spanish, and follow up until complete.', inputs: ['Clients and required documents'], steps: [step('Identify missing documents', 'Administration', 'workspace'), step('Draft bilingual reminders', 'Administration', 'ai', true), step('Send reminders', 'Administration', 'google_workspace', true), step('Summarize collection status', 'Operations', 'ai')], deliverables: ['Missing-document list', 'Approved reminders', 'Status summary'], acceptance_criteria: ['Each missing item is tied to a client', 'Reminders are drafted for each client', 'A status summary is produced'], price_mode: 'included', hours_saved: 3 },
   { key: 'ar_followup', name: 'Accounts receivable follow-up', category: 'Finance Operations', description: 'Review overdue invoices, draft reminders and prepare a collections summary.', inputs: ['Open and overdue invoices'], steps: [step('Pull overdue invoices', 'Finance', 'quickbooks'), step('Prioritize by amount and age', 'Finance', 'ai'), step('Draft reminder messages', 'Finance', 'ai', true), step('Prepare collections summary', 'Finance', 'ai')], deliverables: ['Prioritized overdue list', 'Approved reminders', 'Collections summary'], acceptance_criteria: ['Every overdue invoice is listed with age', 'Reminders are drafted', 'Summary states total outstanding'], price_mode: 'package', package_price: 35, hours_saved: 4 },
@@ -40,6 +41,14 @@ export const DEFAULT_TEMPLATES = [
 
 export async function ensureTemplates(orgId) {
   const page = await base44.entities.WorkTemplate.filter({ org_id: orgId }, { limit: 50 });
-  if (page.items.length) return page.items;
+  if (page.items.length) {
+    // Add the new built-in without overwriting an organization's customization.
+    if (!page.items.some((t) => t.key === 'lead_to_proposal')) {
+      const skill = DEFAULT_TEMPLATES.find((t) => t.key === 'lead_to_proposal');
+      const created = await base44.entities.WorkTemplate.create({ ...skill, org_id: orgId });
+      return [created, ...page.items];
+    }
+    return page.items;
+  }
   return base44.entities.WorkTemplate.bulkCreate(DEFAULT_TEMPLATES.map((t) => ({ ...t, org_id: orgId })));
 }
