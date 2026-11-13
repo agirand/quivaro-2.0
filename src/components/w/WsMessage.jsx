@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
 import LearnedChips from './LearnedChips';
@@ -20,6 +21,7 @@ export default function WsMessage({ m }) {
         <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-md px-4 py-2.5 text-sm text-slate-700 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-strong:text-slate-900">
           <ReactMarkdown>{m.text}</ReactMarkdown>
         </div>
+        {m.payload?.work_skill === 'lead_to_proposal' && <Link to="/w?template=lead_to_proposal" className="inline-block text-sm font-medium text-teal-700 underline">Scope lead to proposal work</Link>}
         {m.payload?.candidates?.length > 0 && <MatchCards m={m} />}
         {m.payload?.source_url && <div className="text-[11px] text-slate-400">Source: <a href={m.payload.source_url} target="_blank" rel="noreferrer" className="underline">{m.payload.source_url}</a> · retrieved {new Date(m.payload.retrieved_at).toLocaleString()}</div>}
         {m.payload?.pages?.length > 0 && <CrawlReport pages={m.payload.pages} />}

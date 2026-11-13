@@ -1,3 +1,4 @@
+import { leadToProposal } from '../../shared/skills/leadToProposal.js';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { getOrg } from '../../shared/workspace.ts';
 import { AGENTS, TOOLS, INTERNAL, AI_COST, REVIEW_RATE, isLive, addHistory, businessContext } from '../../shared/work.ts';
@@ -18,7 +19,7 @@ export default async function (req) {
       E.Integration.filter({ org_id: org.id }, { limit: 50 }),
       businessContext(base44, org),
     ]);
-    const tpl = tpls.items.find((t) => t.key === template_key);
+    const tpl = template_key === leadToProposal.key ? leadToProposal : tpls.items.find((t) => t.key === template_key);
 
     const prompt = `You are the Quivaro Work Engine. Turn a small business owner's requested outcome into a structured, executable Work Order.
 
@@ -35,7 +36,7 @@ Rules:
 - acceptance_criteria: 3-6 objective, checkable statements describing a completed outcome.
 - Never invent facts about the business.`;
 
-    const out = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const out = tpl?.key === leadToProposal.key ? { ...leadToProposal, title: leadToProposal.name, template_key: leadToProposal.key } : await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: 'object',
@@ -49,19 +50,22 @@ Rules:
       },
     });
 
+    // Model-selected built-ins use the same immutable safety contract as explicit selections.
+    if (out.template_key === leadToProposal.key) Object.assign(out, leadToProposal, { title: leadToProposal.name, template_key: leadToProposal.key });
+
     const steps = (out.steps || []).slice(0, 8).map((s) => {
       const tool = TOOLS.includes(s.tool) ? s.tool : 'ai';
       const external = !INTERNAL.includes(tool);
       return { title: String(s.title).slice(0, 200), agent: AGENTS.includes(s.agent) ? s.agent : 'Operations', tool, needs_approval: external || !!s.needs_approval, mode: isLive(tool, ints.items) ? 'connected' : 'not_connected', status: 'pending', output: '' };
     });
-    const usedTpl = tpl || tpls.items.find((t) => t.key === out.template_key);
+    const usedTpl = out.template_key === leadToProposal.key ? leadToProposal : tpl || tpls.items.find((t) => t.key === out.template_key);
     const approvals = steps.filter((s) => s.needs_approval).length;
     const order = {
       org_id: org.id, title: String(out.title).slice(0, 200), request: text, template_key: usedTpl?.key || '', status: 'scoped',
       scope: out.scope, exclusions: out.exclusions || '', inputs: (out.inputs || []).slice(0, 12), provided_info: [], steps,
       acceptance_criteria: (out.acceptance_criteria || []).slice(0, 6).map((c) => ({ text: c, met: null, evidence: '' })),
       due_date: due_date || '', progress: 0, price_mode: usedTpl?.price_mode || 'included', package_price: usedTpl?.package_price || 0,
-      est_cost: +(steps.length * AI_COST + AI_COST + approvals * 3 * REVIEW_RATE).toFixed(2), actual_cost: AI_COST, review_minutes: 0, rework_cost: 0,
+      est_cost: +(steps.length * AI_COST + AI_COST + approvals * 3 * REVIEW_RATE).toFixed(2), actual_cost: tpl?.key === leadToProposal.key ? 0 : AI_COST, review_minutes: 0, rework_cost: 0,
       hours_saved: usedTpl?.hours_saved || 0, bonus_status: 'none',
     };
     order.history = addHistory(order, 'Requested', text);

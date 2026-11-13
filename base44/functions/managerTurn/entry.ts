@@ -52,7 +52,7 @@ Your job for this turn:
 2. proposals: new business records the owner stated (people, customers, services, projects, tasks, procedures). Use confidence >= 0.8 only for explicit statements. Set needs_confirmation=true (with a reason) for anything ambiguous or partial, or a possible duplicate of a known record (set possible_match). Use the exact existing name when updating a known record.
 ${stageNote}
 3. reply: 2-4 short, warm, natural sentences. Acknowledge specifically what you learned, then ask exactly ONE next question. Priorities, skipping anything already in the profile (any status) or answered in the conversation: company name and what they do; how many employees and who handles what; how they work with customers; communication tools (email, WhatsApp, phone...); software they use; what operational work takes the owner's time; then deeper (key clients, projects, deadlines, preferences). Never repeat an answered question. Only ask about a discovered value if verifying it matters.
-4. If the owner asks for work, delegate to one of ${AGENTS.join(', ')} as an internal action. You cannot send emails, messages, payments or touch external systems; anything outward-facing has requires_approval=true and your reply says it is drafted/queued, never done.
+4. For lead qualification, proposal drafting or sales follow-up, set work_skill="lead_to_proposal" and direct the owner to the reusable Lead to proposal skill at /w?template=lead_to_proposal. Explain that it creates a scoped Work Order requiring approval; do not claim you started or completed it. Do not create a parallel delegation for that work. For other work, delegate to one of ${AGENTS.join(', ')} as an internal action. You cannot send emails, messages, payments or touch external systems; anything outward-facing has requires_approval=true and your reply says it is drafted/queued, never done.
 Never ask for passwords. If the owner offers one, tell them not to share it and to use the Integrations page instead.`;
 
     const out = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -61,6 +61,7 @@ Never ask for passwords. If the owner offers one, tell them not to share it and 
         type: 'object',
         properties: {
           reply: { type: 'string' },
+          work_skill: { type: 'string', enum: ['lead_to_proposal'] },
           facts: { type: 'array', items: { type: 'object', properties: { field: { type: 'string', enum: PROFILE_KEYS }, value: { type: 'string' }, excerpt: { type: 'string' } }, required: ['field', 'value', 'excerpt'] } },
           proposals: PROPOSAL_SCHEMA,
           services_confirmed: { type: 'boolean' },
@@ -88,14 +89,14 @@ Never ask for passwords. If the owner offers one, tell them not to share it and 
     const proposals = (out.proposals || []).map((p) => (supported(p.excerpt, msg) ? p : { ...p, needs_confirmation: true, reason: p.reason || "I couldn't match this to your exact words, so please confirm it." }));
     const { applied, queued } = await processProposals(db, org.id, proposals, () => ({ source: 'conversation', source_ref: conversation_id, source_title: 'Web chat', verification: 'confirmed' }));
     const delegations = [];
-    for (const d of (out.delegations || []).slice(0, 4)) {
+    for (const d of (out.work_skill === 'lead_to_proposal' ? [] : (out.delegations || []).slice(0, 4))) {
       const status = d.requires_approval ? 'pending_approval' : 'logged';
       await db.entities.AgentAction.create({ org_id: org.id, agent: d.agent, action: String(d.action).slice(0, 300), status, source: 'conversation', note: 'Delegated by AI Manager. No external action is performed.' });
       delegations.push({ agent: d.agent, action: d.action, status });
     }
 
     let replyText = out.reply;
-    const extra = {};
+    const extra = out.work_skill === 'lead_to_proposal' ? { work_skill: out.work_skill } : {};
     if (stage === 'services_confirm') {
       const removed = [];
       const offers = (await db.entities.Offering.filter({ org_id: org.id }, { limit: 300, fields: ['name'] })).items;

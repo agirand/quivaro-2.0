@@ -1,3 +1,4 @@
+import { isLeadToProposal, skillInstructions, validSkillPlan, resetSkillForRework } from '../../shared/skills/leadToProposal.js';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { getOrg } from '../../shared/workspace.ts';
 import { INTERNAL, AI_COST, isLive, addHistory, progressOf, businessContext } from '../../shared/work.ts';
@@ -30,6 +31,8 @@ Information provided by the owner: ${JSON.stringify(o.provided_info || [])}
 Completed steps so far:
 ${prev || 'none'}
 
+${skillInstructions(o, s)}
+
 Current step: "${s.title}" (tool: ${s.tool}).${s.feedback ? `\nReviewer feedback to address: ${s.feedback}` : ''}
 
 Produce the actual work product for this step in concise markdown (checklists, tables, drafts). Never invent client names, amounts, dates or facts that are not in the context or provided information. If the step genuinely cannot be completed without information you do not have, set missing_info to exactly what is needed and leave output short. If the step happens in an external system, prepare the exact content or action to perform there; it will not be sent until approved and executed.`,
@@ -46,6 +49,7 @@ async function runEngine(base44, org, o) {
     const r = await stepLLM(base44, ctx, o, s);
     calls++;
     o.actual_cost = +((o.actual_cost || 0) + AI_COST).toFixed(2);
+    if (isLeadToProposal(o) && !String(r.output || '').trim() && !r.missing_info) r.missing_info = 'No work product was generated. Add the missing lead or proposal details and retry.';
     if (r.missing_info) {
       Object.assign(s, { status: 'needs_input', missing: String(r.missing_info).slice(0, 500), output: r.output || '' });
       o.history = addHistory(o, 'Needs information', `${s.title}: ${s.missing}`);
@@ -95,9 +99,16 @@ export default async function (req) {
     const rec = id && await base44.entities.WorkOrder.get(id).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
     if (!org || !rec || rec.org_id !== org.id) return Response.json({ error: 'Not found' }, { status: 404 });
     const o = { ...rec, steps: (rec.steps || []).map((s) => ({ ...s })) };
+    if (!validSkillPlan(o)) return Response.json({ error: 'Invalid skill plan; create a new Work Order' }, { status: 400 });
     const s = Number.isInteger(index) ? o.steps[index] : null;
     const bad = (m) => Response.json({ error: m }, { status: 400 });
     const live = !o.is_demo;
+    if (isLeadToProposal(o)) {
+      if (o.is_demo) return bad('Lead to proposal requires a real Work Order');
+      if (['approve_step', 'reject_step', 'manual_complete'].includes(action) && (!RUNNABLE.includes(o.status) || o.steps.find((x) => x.status !== 'done') !== s)) return bad('Only the current active step can be changed');
+      if (action === 'manual_complete' && (!s?.approved || !String(note || '').trim())) return bad('Approve the communication first and record recipient, channel and delivery evidence');
+      if (action === 'provide_info' && !['executing', 'needs_input'].includes(o.status)) return bad('Information can only be added before drafting or when requested');
+    }
     let run = false;
 
     if (action === 'approve_scope') {
@@ -117,7 +128,7 @@ export default async function (req) {
       o.history = addHistory(o, 'Approved by owner', s.title); run = live;
     } else if (action === 'reject_step') {
       if (!s || s.status !== 'awaiting_approval') return bad('Step is not awaiting approval');
-      Object.assign(s, { status: 'pending', output: '', feedback: String(note || 'Please redo').slice(0, 500) });
+      Object.assign(s, { status: 'pending', output: '', approved: false, feedback: String(note || 'Please redo').slice(0, 500) });
       o.review_minutes = (o.review_minutes || 0) + 2; o.rework_cost = +((o.rework_cost || 0) + AI_COST).toFixed(2);
       o.history = addHistory(o, 'Sent back by owner', `${s.title}: ${s.feedback}`); run = live;
     } else if (action === 'manual_complete') {
@@ -135,15 +146,16 @@ export default async function (req) {
       const fb = String(note || 'Address unmet acceptance criteria').slice(0, 500);
       let n = 0;
       o.steps.forEach((x) => { if (x.mode !== 'manual' && INTERNAL.includes(x.tool)) { Object.assign(x, { status: 'pending', feedback: fb, approved: false }); n++; } });
+      if (isLeadToProposal(o)) resetSkillForRework(o, fb);
       o.acceptance_criteria = o.acceptance_criteria.map((c) => ({ text: c.text, met: null, evidence: '' }));
       o.rework_cost = +((o.rework_cost || 0) + n * AI_COST).toFixed(2);
-      const del = (await base44.entities.Deliverable.filter({ work_order_id: o.id, status: { $ne: 'revision_requested' } }, { limit: 5 })).items;
+      const del = (await base44.entities.Deliverable.filter({ org_id: org.id, work_order_id: o.id, status: { $ne: 'revision_requested' } }, { limit: 5 })).items;
       for (const d of del) await base44.entities.Deliverable.update(d.id, { status: 'revision_requested' });
       o.history = addHistory(o, o.status === 'accepted' ? 'Reopened' : 'Revision requested', fb);
       o.status = 'executing'; run = true;
     } else if (action === 'accept') {
       if (o.status !== 'delivered') return bad('Nothing to accept');
-      const del = (await base44.entities.Deliverable.filter({ work_order_id: o.id, status: 'ready' }, { limit: 5 })).items;
+      const del = (await base44.entities.Deliverable.filter({ org_id: org.id, work_order_id: o.id, status: 'ready' }, { limit: 5 })).items;
       for (const d of del) await base44.entities.Deliverable.update(d.id, { status: 'accepted', accepted_at: new Date().toISOString() });
       Object.assign(o, { status: 'accepted', needs_from_customer: '' }); o.history = addHistory(o, 'Accepted by owner');
     } else if (action === 'cancel') {
