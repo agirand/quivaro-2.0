@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import LearnedChips from './LearnedChips';
 import MatchCards from './MatchCards';
 import CrawlReport from './CrawlReport';
+import WorkDraftCard from './WorkDraftCard';
+import ScopedOrderCard from './ScopedOrderCard';
 
-export default function WsMessage({ m }) {
+export default function WsMessage({ m, onAction, busy }) {
   if (m.sender === 'owner') {
     return (
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex justify-end">
@@ -23,6 +25,8 @@ export default function WsMessage({ m }) {
         {m.payload?.candidates?.length > 0 && <MatchCards m={m} />}
         {m.payload?.source_url && <div className="text-[11px] text-slate-400">Source: <a href={m.payload.source_url} target="_blank" rel="noreferrer" className="underline">{m.payload.source_url}</a> · retrieved {new Date(m.payload.retrieved_at).toLocaleString()}</div>}
         {m.payload?.pages?.length > 0 && <CrawlReport pages={m.payload.pages} />}
+        {m.payload?.work_draft && <WorkDraftCard d={m.payload.work_draft} onAction={onAction} busy={busy} />}
+        {m.payload?.work_order && <ScopedOrderCard o={m.payload.work_order} />}
         <LearnedChips p={m.payload} />
       </div>
     </motion.div>

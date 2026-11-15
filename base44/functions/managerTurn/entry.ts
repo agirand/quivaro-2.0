@@ -2,15 +2,28 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { PROPOSAL_SCHEMA, knownNames, processProposals, getOrg } from '../../shared/workspace.ts';
 import { searchCompany } from '../../shared/companyResearch.ts';
 import { PROFILE_KEYS, setFact, supported, normKey, norm } from '../../shared/facts.ts';
+import { scopeOrder } from '../../shared/scope.ts';
 
-const AGENTS = ['Sales', 'Operations', 'Finance', 'Administration'];
+const WORK_INTENTS = ['none', 'gathering', 'ready', 'confirm', 'cancel'];
+
+const setDraft = (db, m, patch) => db.entities.Message.update(m.id, { payload: { ...m.payload, work_draft: { ...m.payload.work_draft, ...patch } } });
+
+// Scopes the pending draft into a Work Order and returns the manager's reply for it.
+async function scopeDraft(base44, org, draftMsg) {
+  const d = draftMsg.payload.work_draft;
+  const rec = await scopeOrder(base44, org, { request: d.request, template_key: d.template_key, due_date: d.due_date });
+  await setDraft(base44, draftMsg, { status: 'created', order_id: rec.id });
+  const approvals = rec.steps.filter((s) => s.needs_approval).length;
+  const text = `I've scoped **${rec.title}**: ${rec.steps.length} steps, ${approvals} of them need your approval. Nothing starts until you approve the plan.${rec.inputs?.length ? ' A few details are still needed from you; they are listed on the work order.' : ''}`;
+  return { text, payload: { work_order: { id: rec.id, title: rec.title, steps: rec.steps.length, approvals, inputs: rec.inputs || [] } } };
+}
 
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    const { conversation_id, text } = await req.json();
+    const { conversation_id, text, action } = await req.json();
     const msg = String(text || '').trim().slice(0, 4000);
     if (!conversation_id || !msg) return Response.json({ error: 'Missing message' }, { status: 400 });
     const db = base44;
@@ -19,10 +32,30 @@ export default async function (req) {
     if (!org || !convo || convo.org_id !== org.id) return Response.json({ error: 'Not found' }, { status: 404 });
 
     await db.entities.Message.create({ org_id: org.id, conversation_id, channel: 'web', direction: 'inbound', sender: 'owner', text: msg, delivery_status: 'delivered_in_app' });
-    const [hist, known] = await Promise.all([
-      db.entities.Message.filter({ conversation_id }, { sort: '-created_date', limit: 14, fields: ['sender', 'text'] }),
+    const [hist, known, tplPage] = await Promise.all([
+      db.entities.Message.filter({ conversation_id }, { sort: '-created_date', limit: 14, fields: ['id', 'sender', 'text', 'payload'] }),
       knownNames(db, org.id),
+      db.entities.WorkTemplate.filter({ org_id: org.id }, { limit: 50, fields: ['key', 'name', 'description', 'inputs'] }),
     ]);
+    const tpls = tplPage.items;
+    const draftMsg = hist.items.find((m) => m.sender === 'manager' && m.payload?.work_draft?.status === 'proposed');
+    const say = async (replyText, payload = {}) => {
+      const reply = await db.entities.Message.create({ org_id: org.id, conversation_id, channel: 'web', direction: 'outbound', sender: 'manager', text: replyText, delivery_status: 'delivered_in_app', payload });
+      await db.entities.Conversation.update(conversation_id, { last_message: replyText.slice(0, 140), last_message_at: new Date().toISOString() });
+      return Response.json({ message: reply });
+    };
+
+    // Button actions on a work request card: no LLM turn needed.
+    if (action === 'confirm_work' || action === 'discard_work') {
+      if (!draftMsg) return say('That work request is no longer pending. Tell me what you need and I will put a new one together.');
+      if (action === 'discard_work') {
+        await setDraft(db, draftMsg, { status: 'discarded' });
+        return say('No problem, I set that request aside. Just tell me whenever you want something done.');
+      }
+      const r = await scopeDraft(base44, org, draftMsg);
+      return say(r.text, r.payload);
+    }
+
     const transcript = hist.items.reverse().map((m) => `${m.sender === 'owner' ? 'OWNER' : 'MANAGER'}: ${m.text}`).join('\n');
     const facts = { ...(org.profile_facts || {}) };
     const profile = Object.fromEntries(PROFILE_KEYS.map((k) => [k, org[k] ? { value: org[k], status: facts[k]?.status || 'unverified' } : 'UNKNOWN']));
@@ -51,8 +84,19 @@ Your job for this turn:
 1. facts: profile fields the owner explicitly stated in the latest message (e.g. "eight employees" -> employee_count "8"). Owner corrections of existing values count.
 2. proposals: new business records the owner stated (people, customers, services, projects, tasks, procedures). Use confidence >= 0.8 only for explicit statements. Set needs_confirmation=true (with a reason) for anything ambiguous or partial, or a possible duplicate of a known record (set possible_match). Use the exact existing name when updating a known record.
 ${stageNote}
-3. reply: 2-4 short, warm, natural sentences. Acknowledge specifically what you learned, then ask exactly ONE next question. Priorities, skipping anything already in the profile (any status) or answered in the conversation: company name and what they do; how many employees and who handles what; how they work with customers; communication tools (email, WhatsApp, phone...); software they use; what operational work takes the owner's time; then deeper (key clients, projects, deadlines, preferences). Never repeat an answered question. Only ask about a discovered value if verifying it matters.
-4. If the owner asks for work, delegate to one of ${AGENTS.join(', ')} as an internal action. You cannot send emails, messages, payments or touch external systems; anything outward-facing has requires_approval=true and your reply says it is drafted/queued, never done.
+3. reply: if this turn is about requested work (see WORK REQUESTS), the reply follows those rules only and asks NO onboarding question. Otherwise: 2-4 short, warm, natural sentences. Acknowledge specifically what you learned, then ask exactly ONE next question. Priorities, skipping anything already in the profile (any status) or answered in the conversation: company name and what they do; how many employees and who handles what; how they work with customers; communication tools (email, WhatsApp, phone...); software they use; what operational work takes the owner's time; then deeper (key clients, projects, deadlines, preferences). Never repeat an answered question. Only ask about a discovered value if verifying it matters.
+WORK REQUESTS (takes priority over onboarding questions in this turn):
+Today is ${new Date().toISOString().slice(0, 10)}.
+Work templates (standard services) with the inputs each needs: ${JSON.stringify(tpls.map((t) => ({ key: t.key, name: t.name, description: t.description, inputs: t.inputs || [] })))}
+Pending work request awaiting the owner's confirmation: ${draftMsg ? JSON.stringify(draftMsg.payload.work_draft) : 'none'}
+When the owner asks Quivaro to get something done (an outcome to deliver, e.g. "follow up with these leads", "chase overdue invoices"), act as a work intake, filling "work":
+- Essential = who or what the work covers and the goal. Anything else (contact details, tone, deadline) is non-essential: put it in "missing" instead of asking. As soon as the essentials are known, use "ready".
+- intent "gathering": essential details are missing. Ask exactly ONE short question about the most important missing detail (who/what it covers, the goal, any deadline). Ask at most 2 such questions over the conversation; after that, move on with what you have.
+- intent "ready": you know enough to scope it. "request" = one complete description of the outcome combining every detail the owner gave across the conversation (names, contact details, goals, tone, deadline), without inventing anything. Pick the best template_key (or ""), title (short), due_date as YYYY-MM-DD only if the owner gave a deadline, and "missing" = non-essential inputs still unknown. Your reply briefly summarises what you will do and asks them to confirm so you can scope it. If the owner changes a pending request, return "ready" again with the updated request.
+- intent "confirm": a request is pending and the owner clearly agrees to go ahead. Reply with one short sentence.
+- intent "cancel": a request is pending and the owner declines or drops it.
+- intent "none": the message is not about requested work.
+Quivaro never sends emails, messages or payments from chat; scoped work runs only after the owner approves the plan, and outward-facing steps need their approval too. Never say work is done or sent.
 Never ask for passwords. If the owner offers one, tell them not to share it and to use the Integrations page instead.`;
 
     const out = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -65,7 +109,7 @@ Never ask for passwords. If the owner offers one, tell them not to share it and 
           proposals: PROPOSAL_SCHEMA,
           services_confirmed: { type: 'boolean' },
           remove_services: { type: 'array', items: { type: 'string' } },
-          delegations: { type: 'array', items: { type: 'object', properties: { agent: { type: 'string', enum: AGENTS }, action: { type: 'string' }, requires_approval: { type: 'boolean' } }, required: ['agent', 'action'] } },
+          work: { type: 'object', properties: { intent: { type: 'string', enum: WORK_INTENTS }, request: { type: 'string' }, title: { type: 'string' }, template_key: { type: 'string' }, due_date: { type: 'string' }, missing: { type: 'array', items: { type: 'string' } } }, required: ['intent'] },
         },
         required: ['reply'],
       },
@@ -87,15 +131,30 @@ Never ask for passwords. If the owner offers one, tell them not to share it and 
 
     const proposals = (out.proposals || []).map((p) => (supported(p.excerpt, msg) ? p : { ...p, needs_confirmation: true, reason: p.reason || "I couldn't match this to your exact words, so please confirm it." }));
     const { applied, queued } = await processProposals(db, org.id, proposals, () => ({ source: 'conversation', source_ref: conversation_id, source_title: 'Web chat', verification: 'confirmed' }));
-    const delegations = [];
-    for (const d of (out.delegations || []).slice(0, 4)) {
-      const status = d.requires_approval ? 'pending_approval' : 'logged';
-      await db.entities.AgentAction.create({ org_id: org.id, agent: d.agent, action: String(d.action).slice(0, 300), status, source: 'conversation', note: 'Delegated by AI Manager. No external action is performed.' });
-      delegations.push({ agent: d.agent, action: d.action, status });
-    }
-
     let replyText = out.reply;
     const extra = {};
+
+    // Conversational work intake.
+    const w = out.work || { intent: 'none' };
+    // A plain "yes / go ahead" to a pending request is always a confirmation.
+    if (draftMsg && w.intent !== 'ready' && /^(yes|yep|yeah|sure|ok(ay)?|go ahead|do it|sounds good|confirm(ed)?|please do|let'?s do it)\b/i.test(msg) && msg.length < 80) w.intent = 'confirm';
+    const working = WORK_INTENTS.includes(w.intent) && w.intent !== 'none';
+    if (w.intent === 'confirm' && draftMsg) {
+      const r = await scopeDraft(base44, org, draftMsg);
+      replyText = r.text;
+      Object.assign(extra, r.payload);
+    } else if (w.intent === 'cancel' && draftMsg) {
+      await setDraft(db, draftMsg, { status: 'discarded' });
+    } else if (w.intent === 'ready' && String(w.request || '').trim()) {
+      if (draftMsg) await setDraft(db, draftMsg, { status: 'superseded' });
+      const t = tpls.find((x) => x.key === w.template_key);
+      replyText = `Here's the work request I put together${t ? ` using our **${t.name}** service` : ''}. Check it over, then press **Scope this work** or just say yes, and I'll build the plan for your approval. Tell me if anything should change.`;
+      extra.work_draft = {
+        status: 'proposed', request: String(w.request).trim().slice(0, 2000), title: String(w.title || 'Work request').slice(0, 120),
+        template_key: t?.key || '', template_name: t?.name || '', due_date: /^\d{4}-\d{2}-\d{2}$/.test(w.due_date || '') ? w.due_date : '',
+        missing: (w.missing || []).slice(0, 6).map((x) => String(x).slice(0, 200)),
+      };
+    }
     if (stage === 'services_confirm') {
       const removed = [];
       const offers = (await db.entities.Offering.filter({ org_id: org.id }, { limit: 300, fields: ['name'] })).items;
@@ -119,7 +178,7 @@ Never ask for passwords. If the owner offers one, tell them not to share it and 
     await db.entities.Organization.update(org.id, upd);
 
     const name = upd.name || org.name;
-    if ((stage === 'intro' || stage === 'awaiting_match') && name) {
+    if ((stage === 'intro' || stage === 'awaiting_match') && name && !working) {
       const cands = await searchCompany(base44, { name, location: upd.location || org.location, website: upd.website || org.website, latest_owner_message: msg });
       await db.entities.Organization.update(org.id, { discovery_stage: cands.length ? 'awaiting_match' : 'intro', match_candidates: cands });
       if (cands.length) {
@@ -129,9 +188,7 @@ Never ask for passwords. If the owner offers one, tell them not to share it and 
         replyText = `I searched online but couldn't find a reliable match for ${name}. What's your website address, or another detail like your city?`;
       }
     }
-    const reply = await db.entities.Message.create({ org_id: org.id, conversation_id, channel: 'web', direction: 'outbound', sender: 'manager', text: replyText, delivery_status: 'delivered_in_app', payload: { applied, queued, delegations, profile: profileKeys, ...extra } });
-    await db.entities.Conversation.update(conversation_id, { last_message: replyText.slice(0, 140), last_message_at: new Date().toISOString() });
-    return Response.json({ message: reply, facts: profileKeys });
+    return say(replyText, { applied, queued, profile: profileKeys, ...extra });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
