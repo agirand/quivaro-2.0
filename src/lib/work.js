@@ -36,10 +36,21 @@ export const DEFAULT_TEMPLATES = [
   { key: 'client_reporting', name: 'Monthly client status report', category: 'Client Operations', description: 'Compile what was done for each client this month into a clear status report.', inputs: ['Reporting month', 'Clients to include'], steps: [step('Gather engagement and task status', 'Operations', 'workspace'), step('Draft client-ready reports', 'Operations', 'ai', true), step('Prepare delivery package', 'Administration', 'ai')], deliverables: ['One status report per client'], acceptance_criteria: ['Each included client has a report', 'Reports list completed and open items'], price_mode: 'included', hours_saved: 5 },
   { key: 'lead_qualification', name: 'Lead qualification & CRM prep', category: 'Sales Operations', description: 'Qualify new leads against your ideal client and prepare CRM-ready records.', inputs: ['New leads', 'Ideal client description'], steps: [step('Score leads against ideal client', 'Sales', 'ai'), step('Draft follow-up for qualified leads', 'Sales', 'ai', true), step('Prepare CRM updates', 'Sales', 'hubspot', true)], deliverables: ['Qualified lead list', 'Follow-up drafts', 'CRM update sheet'], acceptance_criteria: ['Each lead has a score and reason', 'Qualified leads have a follow-up draft'], price_mode: 'included', hours_saved: 3 },
   { key: 'admin_documents', name: 'Administrative document prep', category: 'Administration', description: 'Prepare letters, forms and internal documents from your records.', inputs: ['Document type and purpose'], steps: [step('Collect required details', 'Administration', 'workspace'), step('Draft documents', 'Administration', 'ai', true), step('Final formatting check', 'Administration', 'ai')], deliverables: ['Review-ready documents'], acceptance_criteria: ['Documents contain all required details', 'No placeholder text remains'], price_mode: 'included', hours_saved: 2 },
+  { key: 'lead_followup', name: 'Lead follow-up', category: 'Sales Operations', description: 'Follow up on people who already contacted you: organize and prioritize them, prepare a personal reply for each, and document the outcome and next action. Nothing is sent without your approval.',
+    inputs: ['Each lead\'s name and email or phone', 'Where each lead came from and what they asked about', 'The next step you want (for example, book a call or send a quote)', 'Preferred tone, and any leads to skip'],
+    steps: [step('Organize leads and check them against your existing clients', 'Sales', 'workspace'), step('Prioritize each lead and note what they asked for', 'Sales', 'ai'), step('Draft a personal follow-up message for each lead', 'Sales', 'ai', true), step('Send the approved follow-ups', 'Sales', 'google_workspace', true), step('Log each follow-up with its next action and owner', 'Sales', 'workspace'), step('Prepare the follow-up outcome summary', 'Manager', 'ai')],
+    deliverables: ['Prioritized lead list', 'Approved follow-up messages', 'Follow-up log with next actions', 'Outcome summary'],
+    exclusions: 'No message is sent without your approval. No cold outreach to people who have not contacted you. No pricing commitments, discounts, contracts or legal promises. No purchased lead lists or CRM migration.',
+    acceptance_criteria: ['Every lead provided is listed with its source, priority and status', 'Every lead being followed up has a personal message you approved', 'No message was sent without a recorded approval', 'Each lead has a documented next action and owner', 'Skipped leads, or leads missing contact details, are listed with the reason'],
+    price_mode: 'included', hours_saved: 4 },
 ];
 
+// Creates the standard templates the workspace doesn't have yet (by key), never touching customized ones.
 export async function ensureTemplates(orgId) {
   const page = await base44.entities.WorkTemplate.filter({ org_id: orgId }, { limit: 50 });
-  if (page.items.length) return page.items;
-  return base44.entities.WorkTemplate.bulkCreate(DEFAULT_TEMPLATES.map((t) => ({ ...t, org_id: orgId })));
+  const have = new Set(page.items.map((t) => t.key));
+  const missing = DEFAULT_TEMPLATES.filter((t) => !have.has(t.key));
+  if (!missing.length) return page.items;
+  const created = await base44.entities.WorkTemplate.bulkCreate(missing.map((t) => ({ ...t, org_id: orgId })));
+  return [...page.items, ...created];
 }

@@ -24,7 +24,7 @@ export default async function (req) {
 
 ${ctx}
 Available work templates: ${JSON.stringify(tpls.items.map((t) => ({ key: t.key, name: t.name, steps: t.steps, acceptance_criteria: t.acceptance_criteria })))}
-${tpl ? `The owner chose the template "${tpl.name}". Start from its steps and criteria and adapt them to the request. Industry notes: ${tpl.industry_notes || 'none'}.` : 'Pick the closest template if one fits (template_key), else leave it empty.'}
+${tpl ? `The owner chose the template "${tpl.name}". Start from its steps and criteria and adapt them to the request. Keep every step the template marks needs_approval=true as an approval step. Required inputs: ${JSON.stringify(tpl.inputs || [])}; list any the owner did not provide as inputs. Its exclusions always apply and are added automatically: ${tpl.exclusions || 'none'}. In "exclusions", list only additional ones specific to this request, or leave it empty. Industry notes: ${tpl.industry_notes || 'none'}.` : 'Pick the closest template if one fits (template_key), else leave it empty.'}
 
 Owner's request: "${text}"
 
@@ -58,7 +58,7 @@ Rules:
     const approvals = steps.filter((s) => s.needs_approval).length;
     const order = {
       org_id: org.id, title: String(out.title).slice(0, 200), request: text, template_key: usedTpl?.key || '', status: 'scoped',
-      scope: out.scope, exclusions: out.exclusions || '', inputs: (out.inputs || []).slice(0, 12), provided_info: [], steps,
+      scope: out.scope, exclusions: [usedTpl?.exclusions, out.exclusions].filter(Boolean).join(' ').slice(0, 1500), inputs: (out.inputs || []).slice(0, 12), provided_info: [], steps,
       acceptance_criteria: (out.acceptance_criteria || []).slice(0, 6).map((c) => ({ text: c, met: null, evidence: '' })),
       due_date: due_date || '', progress: 0, price_mode: usedTpl?.price_mode || 'included', package_price: usedTpl?.package_price || 0,
       est_cost: +(steps.length * AI_COST + AI_COST + approvals * 3 * REVIEW_RATE).toFixed(2), actual_cost: AI_COST, review_minutes: 0, rework_cost: 0,

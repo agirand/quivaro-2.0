@@ -39,6 +39,10 @@
         "type": "string"
       }
     },
+    "exclusions": {
+      "type": "string",
+      "description": "What this service does not include"
+    },
     "acceptance_criteria": {
       "type": "array",
       "items": {

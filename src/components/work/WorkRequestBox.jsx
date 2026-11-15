@@ -12,6 +12,7 @@ export default function WorkRequestBox({ templates = [], initialTemplate = '' })
   const [tpl, setTpl] = useState(initialTemplate);
   const [due, setDue] = useState('');
   const [busy, setBusy] = useState(false);
+  const chosen = templates.find((t) => t.key === tpl);
   const submit = async () => {
     setBusy(true);
     const res = await base44.functions.invoke('scopeWork', { request: text, template_key: tpl, due_date: due }).catch((e) => ({ data: { error: e.response?.data?.error || e.message } }));
@@ -26,6 +27,7 @@ export default function WorkRequestBox({ templates = [], initialTemplate = '' })
         <div className="text-[11px] uppercase tracking-[0.2em] text-teal-200/90">Quivaro does the work</div>
         <h1 className="text-2xl md:text-4xl font-heading mt-2 leading-tight">What needs to get done?</h1>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder={EXAMPLE} className="mt-5 w-full rounded-2xl bg-white/10 border border-white/15 p-4 text-sm placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-teal-300/50 resize-none" />
+        {!!chosen?.inputs?.length && <p className="text-xs text-teal-100/80 mt-2">For {chosen.name.toLowerCase()}, include: {chosen.inputs.join('; ')}.</p>}
         <div className="mt-3 flex flex-col sm:flex-row gap-2">
           <select value={tpl} onChange={(e) => setTpl(e.target.value)} className="flex-1 rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm [&>option]:text-slate-900">
             <option value="">Let Quivaro choose a template</option>
