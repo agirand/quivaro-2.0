@@ -23,7 +23,7 @@ export default async function (req) {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    const { conversation_id, text, action } = await req.json();
+    const { conversation_id, text, action, draft_id } = await req.json();
     const msg = String(text || '').trim().slice(0, 4000);
     if (!conversation_id || !msg) return Response.json({ error: 'Missing message' }, { status: 400 });
     const db = base44;
@@ -38,7 +38,11 @@ export default async function (req) {
       db.entities.WorkTemplate.filter({ org_id: org.id }, { limit: 50, fields: ['key', 'name', 'description', 'inputs'] }),
     ]);
     const tpls = tplPage.items;
-    const draftMsg = hist.items.find((m) => m.sender === 'manager' && m.payload?.work_draft?.status === 'proposed');
+    // A specific request (e.g. from the Work Center) can be targeted by id; otherwise the latest pending one in this chat.
+    const picked = draft_id ? await db.entities.Message.get(draft_id).catch(() => null) : null;
+    const draftMsg = picked
+      ? (picked.conversation_id === conversation_id && picked.payload?.work_draft?.status === 'proposed' ? picked : null)
+      : hist.items.find((m) => m.sender === 'manager' && m.payload?.work_draft?.status === 'proposed');
     const say = async (replyText, payload = {}) => {
       const reply = await db.entities.Message.create({ org_id: org.id, conversation_id, channel: 'web', direction: 'outbound', sender: 'manager', text: replyText, delivery_status: 'delivered_in_app', payload });
       await db.entities.Conversation.update(conversation_id, { last_message: replyText.slice(0, 140), last_message_at: new Date().toISOString() });

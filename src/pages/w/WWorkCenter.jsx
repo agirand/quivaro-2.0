@@ -10,6 +10,7 @@ import WorkStats from '@/components/work/WorkStats';
 import WorkOrderCard from '@/components/work/WorkOrderCard';
 import TemplateCard from '@/components/work/TemplateCard';
 import CommitsPanel from '@/components/work/CommitsPanel';
+import PendingRequests from '@/components/work/PendingRequests';
 
 export default function WWorkCenter() {
   const org = useOrg();
@@ -24,6 +25,7 @@ export default function WWorkCenter() {
   return (
     <div className="space-y-6">
       <WorkRequestBox key={initial} templates={templates} initialTemplate={initial} />
+      <PendingRequests />
       <WorkStats orders={orders} />
       <CommitsPanel org={org} />
       <section>
