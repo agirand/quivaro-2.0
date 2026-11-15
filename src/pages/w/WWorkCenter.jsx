@@ -9,6 +9,7 @@ import WorkRequestBox from '@/components/work/WorkRequestBox';
 import WorkStats from '@/components/work/WorkStats';
 import WorkOrderCard from '@/components/work/WorkOrderCard';
 import TemplateCard from '@/components/work/TemplateCard';
+import CommitsPanel from '@/components/work/CommitsPanel';
 
 export default function WWorkCenter() {
   const org = useOrg();
@@ -24,6 +25,7 @@ export default function WWorkCenter() {
     <div className="space-y-6">
       <WorkRequestBox key={initial} templates={templates} initialTemplate={initial} />
       <WorkStats orders={orders} />
+      <CommitsPanel org={org} />
       <section>
         <div className="flex items-center justify-between mb-3"><h2 className="text-lg text-slate-900">Current work</h2>
           <div className="flex gap-3 text-xs">

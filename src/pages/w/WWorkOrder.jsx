@@ -15,6 +15,7 @@ import OrderEconomics from '@/components/work/OrderEconomics';
 import OrderHistory from '@/components/work/OrderHistory';
 import BonusPanel from '@/components/work/BonusPanel';
 import DeliverableCard from '@/components/work/DeliverableCard';
+import PrLinkField from '@/components/work/PrLinkField';
 
 export default function WWorkOrder() {
   const { id } = useParams();
@@ -51,7 +52,7 @@ export default function WWorkOrder() {
           <div className="card-soft p-5"><div className="text-sm font-medium text-slate-900 mb-4">Execution plan</div>{(o.steps || []).map((s, i) => <StepItem key={i} s={s} i={i} act={act} busy={busy} />)}</div>
           <div className="card-soft p-5"><div className="text-sm font-medium text-slate-900 mb-3">Acceptance criteria</div><CriteriaList criteria={o.acceptance_criteria} /><p className="text-[11px] text-slate-400 mt-3">Work is only delivered once every criterion is verified.</p></div>
         </div>
-        <div className="space-y-5"><ScopePanel o={o} /><OrderEconomics o={o} /><OrderHistory history={o.history} /></div>
+        <div className="space-y-5"><ScopePanel o={o} />{!o.is_demo && <PrLinkField key={o.pr_url || ''} o={o} />}<OrderEconomics o={o} /><OrderHistory history={o.history} /></div>
       </div>
     </div>
   );

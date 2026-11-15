@@ -29,6 +29,19 @@
         "cancelled",
         "closed"
       ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "yellow",
+        "yellow",
+        "red",
+        "purple",
+        "green",
+        "green",
+        "purple",
+        "gray",
+        "gray"
+      ],
       "default": "scoped"
     },
     "scope": {
@@ -116,6 +129,14 @@
     },
     "is_demo": {
       "type": "boolean"
+    },
+    "pr_url": {
+      "type": "string",
+      "description": "Linked GitHub pull request URL, lowercase, no trailing slash"
+    },
+    "pr_state": {
+      "type": "string",
+      "description": "Last seen pull request state: open, closed, merged"
     },
     "history": {
       "type": "array",

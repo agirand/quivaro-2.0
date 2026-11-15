@@ -1,0 +1,41 @@
+{
+  "name": "GitHub PR \u2192 Work Orders",
+  "description": "When a pull request in agirand/quivaro-2.0 is opened, updated, reopened, closed or merged, update the work orders linked to that PR URL.",
+  "trigger": {
+    "config": {
+      "trigger_type": "connector",
+      "integration_type": "github",
+      "events": [
+        "pull_request"
+      ],
+      "resource_id": "agirand/quivaro-2.0"
+    },
+    "condition": "${ ((.trigger.data.repository.full_name // \"\") | ascii_downcase) == \"agirand/quivaro-2.0\" and ((.trigger.data.action // \"\") | IN(\"opened\", \"reopened\", \"synchronize\", \"closed\")) }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "github_pr_work_orders",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "update_work_orders": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "githubPrEvent",
+            "args": {
+              "data": "${ .trigger.data }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Update linked work orders",
+            "description": "Match by PR URL"
+          }
+        }
+      }
+    ]
+  }
+}

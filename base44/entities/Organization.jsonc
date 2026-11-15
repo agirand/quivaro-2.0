@@ -114,6 +114,10 @@
         "scale"
       ],
       "default": "starter"
+    },
+    "github_repo": {
+      "type": "string",
+      "description": "owner/repo shown in the Work Center commits panel"
     }
   },
   "required": [],
